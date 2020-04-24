@@ -1,4 +1,5 @@
-#include <max6675.h>
+#include <SPI.h>
+#include "Adafruit_MAX31855.h"
 #include <ModbusRtu.h>
 
 // data array for modbus network sharing
@@ -12,23 +13,27 @@ uint16_t au16data[16] = {
  *  u8txenpin : 0 for RS-232 and USB-FTDI 
  *               or any pin number > 1 for RS-485
  */
-Modbus slave(1,0,0); // this is slave @1 and RS-232 or USB-FTDI
+Modbus slave(1,Serial, 0); // is is slave @1 and RS-232 or USB-FTDI
 
-int thermoDO = 4;
-int thermoCS = 5;
-int thermoCLK = 6;
-
-MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+// Example creating a thermocouple instance with hardware SPI
+// on a given CS pin.
+#define MAXCS   10
+Adafruit_MAX31855 thermocouple(MAXCS);
+//MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 
 int relay = 9;  
   
 void setup() {
-  slave.begin( 19200); // 19200 baud, 8-bits, even, 1-bit stop
+    Serial.begin( 19200 ); // baud-rate at 19200
+  slave.start();
+ // slave.begin( 19200); // 19200 baud, 8-bits, even, 1-bit stop
   // use Arduino pins 
   pinMode(relay, OUTPUT);
  delay(500);
   
 }
+
+
 
 void loop() {
    //write current thermocouple value
