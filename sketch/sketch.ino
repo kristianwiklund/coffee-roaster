@@ -5,8 +5,8 @@
 #include <BrewpiPins.h>
 #include <BrewpiPrint.h>
 
-//#include <SPI.h>
-//#include "Adafruit_MAX31855.h"
+#include <SPI.h>
+#include "Adafruit_MAX31855.h"
 //#include <ModbusRtu.h>
 
 // data array for modbus network sharing
@@ -43,19 +43,19 @@ Buzzer buzzer;
 
 // Example creating a thermocouple instance with hardware SPI
 // on a given CS pin.
-#define MAXCS   10
-//Adafruit_MAX31855 thermocouple(MAXCS);
+#define MAXCS   2
+Adafruit_MAX31855 thermocouple(MAXCS);
 //MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 Encoder myEnc(8, 9);
 
 int relay = 5;  
   
 void setup() {
-    Serial.begin( 19200 ); // baud-rate at 19200
+    Serial.begin( 9600 ); // baud-rate at 19200
   //slave.start();
  // slave.begin( 19200); // 19200 baud, 8-bits, even, 1-bit stop
   // use Arduino pins 
-  //pinMode(relay, OUTPUT);
+  pinMode(relay, OUTPUT);
   display_setup();
 
   // buzzer
@@ -67,7 +67,7 @@ void setup() {
 
 void loop() {
    //write current thermocouple value
-  // au16data[2] = ((uint16_t) thermocouple.readCelsius()*100);
+  au16data[2] = ((uint16_t) thermocouple.readCelsius()*100);
 
    //poll modbus registers
   // slave.poll( au16data, 16 );
@@ -76,6 +76,7 @@ void loop() {
   // analogWrite(relay, (au16data[4]/100.0)*255);
    delay(500);
      update_display();
+     
 }
 
 SpiLcd lcd;
