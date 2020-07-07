@@ -37,6 +37,10 @@ uint16_t au16data[16] = {
 
 
 Buzzer buzzer;
+long oldPosition  = -999;
+double temperature=0.0;
+#define STARTSETPOINT 180
+int setpoint = STARTSETPOINT;
 
 
 //Modbus slave(1,Serial, 0); // is is slave @1 and RS-232 or USB-FTDI
@@ -49,7 +53,8 @@ Adafruit_MAX31855 thermocouple(MAXCS);
 Encoder myEnc(8, 9);
 
 int relay = 5;  
-  
+unsigned long oldtime=0;
+
 void setup() {
     Serial.begin( 9600 ); // baud-rate at 19200
   //slave.start();
@@ -61,22 +66,39 @@ void setup() {
   // buzzer
   buzzer.init();
   buzzer.beep(3,100);
-   delay(500);
+   delay(50);
 
+}
+
+void read_encoder() {
+
+  long newPosition = myEnc.read();
+  if (newPosition != oldPosition) {
+    setpoint = STARTSETPOINT + (newPosition/4)*10;
+    if (setpoint > 220) setpoint = 220;
+    if (setpoint < 0) setpoint = 0;
+    oldPosition = newPosition;
+        Serial.println(newPosition);
+
+  }
+  
 }
 
 void loop() {
    //write current thermocouple value
-  au16data[2] = ((uint16_t) thermocouple.readCelsius()*100);
-
+   if(millis()-oldtime > 500) {
+      oldtime=millis();
+      temperature = ((uint16_t) thermocouple.readCelsius()*100);
+   }
    //poll modbus registers
   // slave.poll( au16data, 16 );
 
    //write relay value using pwm
   // analogWrite(relay, (au16data[4]/100.0)*255);
-   delay(500);
-     update_display();
-     
+  
+   read_encoder();
+   update_display();
+
 }
 
 SpiLcd lcd;
@@ -102,16 +124,24 @@ char *ftoa(char *a, double f, int precision)
 
 
 void writetemps() {
-  lcd.setCursor(6,2);
-  lcd.write(ftoa(buf,au16data[2]/100.0,1));
-   lcd.write((char)223);
-   lcd.write(" ");
+  static double otemp=-1.0;
+  int oset=-1.0;
 
-  lcd.setCursor(6,3);
-  lcd.write(ftoa(buf,au16data[4],1));
-   lcd.write((char)223);
-   lcd.write(" ");
+  if (otemp != temperature) {
+    lcd.setCursor(6,2);
+    lcd.write(ftoa(buf,temperature,1));
+    lcd.write((char)223);
+    lcd.write(" ");
+    otemp = temperature;
+  }
 
+  if (oset != setpoint) {
+    lcd.setCursor(6,3);
+    lcd.write(itoa(setpoint, buf, 10));
+    lcd.write((char)223);
+    lcd.write(" ");
+    oset=setpoint;
+  }
    
 }
 
