@@ -13,7 +13,7 @@
 double MSP, Input, Output;
 
 PID myPID(&Input, &Output, &MSP,75,50,0, DIRECT);
-int WindowSize = 5000;
+int WindowSize = 1000;
 unsigned long windowStartTime;
 
 // Pins used by the adafruit thing:
@@ -76,7 +76,7 @@ void writetemps() {
 
   if (otemp != temperature) {
     lcd.setCursor(6,2);
-    lcd.write(ftoa(buf,temperature,1));
+    lcd.write(itoa(((int)(temperature)),buf, 10));
     lcd.write((char)223);
     lcd.write(" ");
     otemp = temperature;
@@ -98,7 +98,7 @@ void writepow() {
   if (oout != Output) {
   oout = Output;
     lcd.setCursor(6,1);
-    lcd.write(itoa((int)(Output/50), buf, 10));
+    lcd.write(itoa((int)(100.0*Output/WindowSize), buf, 10));
     lcd.write((char)'%');
     lcd.write(" ");
   
@@ -177,7 +177,7 @@ void read_encoder() {
 
 void loop() {
    //write current thermocouple value
-   if(millis()-oldtime > 500) {
+   if(millis()-oldtime > 100) {
       oldtime=millis();
       temperature = (thermocouple.readCelsius());
       
