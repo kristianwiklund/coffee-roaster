@@ -1,4 +1,4 @@
-#include <Encoder.h>
+#include <Encoder.h> // encoder 1.4.1 by Paul Stoffregen
 
 #include <BrewpiBuzzer.h>
 #include <BrewpiLCD.h>
@@ -7,19 +7,14 @@
 
 #include <SPI.h>
 #include "Adafruit_MAX31855.h"
-//#include <ModbusRtu.h>
 
-// data array for modbus network sharing
-uint16_t au16data[16] = {
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1 };
+#include <PID_v1.h>
 
-/**
- *  Modbus object declaration
- *  u8id : node id = 0 for master, = 1..247 for slave
- *  u8serno : serial port (use 0 for Serial)
- *  u8txenpin : 0 for RS-232 and USB-FTDI 
- *               or any pin number > 1 for RS-485
- */
+double MSP, Input, Output;
+
+PID myPID(&Input, &Output, &MSP,75,50,0, DIRECT);
+int WindowSize = 5000;
+unsigned long windowStartTime;
 
 // Pins used by the adafruit thing:
 // Try using 1 - (CS), 12 (DO), 13 (SCK)
@@ -43,63 +38,15 @@ double temperature=0.0;
 int setpoint = STARTSETPOINT;
 
 
-//Modbus slave(1,Serial, 0); // is is slave @1 and RS-232 or USB-FTDI
-
 // Example creating a thermocouple instance with hardware SPI
 // on a given CS pin.
-#define MAXCS   2
+
+#define MAXCS   2 // 10 is used by the brewpi display board
 Adafruit_MAX31855 thermocouple(MAXCS);
-//MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 Encoder myEnc(8, 9);
 
 int relay = 5;  
 unsigned long oldtime=0;
-
-void setup() {
-    Serial.begin( 9600 ); // baud-rate at 19200
-  //slave.start();
- // slave.begin( 19200); // 19200 baud, 8-bits, even, 1-bit stop
-  // use Arduino pins 
-  pinMode(relay, OUTPUT);
-  display_setup();
-
-  // buzzer
-  buzzer.init();
-  buzzer.beep(3,100);
-   delay(50);
-
-}
-
-void read_encoder() {
-
-  long newPosition = myEnc.read();
-  if (newPosition != oldPosition) {
-    setpoint = STARTSETPOINT + (newPosition/4)*10;
-    if (setpoint > 220) setpoint = 220;
-    if (setpoint < 0) setpoint = 0;
-    oldPosition = newPosition;
-        Serial.println(newPosition);
-
-  }
-  
-}
-
-void loop() {
-   //write current thermocouple value
-   if(millis()-oldtime > 500) {
-      oldtime=millis();
-      temperature = ((uint16_t) thermocouple.readCelsius()*100);
-   }
-   //poll modbus registers
-  // slave.poll( au16data, 16 );
-
-   //write relay value using pwm
-  // analogWrite(relay, (au16data[4]/100.0)*255);
-  
-   read_encoder();
-   update_display();
-
-}
 
 SpiLcd lcd;
 char buf[10];
@@ -125,7 +72,7 @@ char *ftoa(char *a, double f, int precision)
 
 void writetemps() {
   static double otemp=-1.0;
-  int oset=-1.0;
+  static int oset=-1.0;
 
   if (otemp != temperature) {
     lcd.setCursor(6,2);
@@ -137,7 +84,7 @@ void writetemps() {
 
   if (oset != setpoint) {
     lcd.setCursor(6,3);
-    lcd.write(itoa(setpoint, buf, 10));
+    lcd.write(itoa(((int)(setpoint)), buf, 10));
     lcd.write((char)223);
     lcd.write(" ");
     oset=setpoint;
@@ -145,6 +92,19 @@ void writetemps() {
    
 }
 
+void writepow() {
+  static double oout=-1;
+
+  if (oout != Output) {
+  oout = Output;
+    lcd.setCursor(6,1);
+    lcd.write(itoa((int)(Output/50), buf, 10));
+    lcd.write((char)'%');
+    lcd.write(" ");
+  
+  }
+  
+}
 
 
 void display_setup() {
@@ -159,13 +119,90 @@ void display_setup() {
  lcd.write("Air : ");
  lcd.setCursor(0,3);
  lcd.write("Set : ");
+ lcd.setCursor(0,1);
+ lcd.write("Pow : ");
 
  writetemps();
+ writepow();
 }
 
 void update_display() {
  writetemps();
+ writepow();
 }
+
+void setup() {
+  Serial.begin( 9600 ); // baud-rate at 19200
+
+  pinMode(relay, OUTPUT);
+  display_setup();
+
+  // buzzer
+  buzzer.init();
+  buzzer.beep(1,100);
+  delay(50);
+
+  // pid
+
+  windowStartTime = millis();
+  MSP = setpoint;
+    buzzer.beep(1,100);
+  delay(50);
+  //tell the PID to range between 0 and the full window size
+  myPID.SetOutputLimits(0, WindowSize);
+  buzzer.beep(1,100);
+  delay(50);
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+  buzzer.beep(1,100);
+  delay(50);
+}
+
+void read_encoder() {
+
+  long newPosition = myEnc.read();
+  if (newPosition != oldPosition) {
+    setpoint = STARTSETPOINT + (newPosition/4)*10;
+    if (setpoint > 220) setpoint = 220;
+    if (setpoint < 0) setpoint = 0;
+
+    MSP = (double)setpoint;
+    
+    oldPosition = newPosition;
+        Serial.println(newPosition);
+
+  }
+  
+}
+
+void loop() {
+   //write current thermocouple value
+   if(millis()-oldtime > 500) {
+      oldtime=millis();
+      temperature = (thermocouple.readCelsius());
+      
+      Input = temperature;
+      myPID.Compute();
+            Serial.println(MSP);
+      Serial.println(Input);
+
+      Serial.println(Output);
+   }
+
+  if(millis() - windowStartTime>WindowSize)
+  { //time to shift the Relay Window
+    windowStartTime += WindowSize;
+  }
+  if(Output < millis() - windowStartTime) digitalWrite(relay,HIGH);
+  else digitalWrite(relay,LOW);
+  
+  
+   read_encoder();
+   update_display();
+
+}
+
+
 
 
   
