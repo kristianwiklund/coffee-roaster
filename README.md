@@ -1,3 +1,3 @@
 # Arduino Controlled Coffee Roaster
 
-In the process of being completely rewritten using spare brewpi hw, not reusing much of the original sketch.
+Built around a brewpi arduino shield I had around. Needs the brewpi libraries.
