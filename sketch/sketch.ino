@@ -7,6 +7,8 @@
 
 #include <SPI.h>
 #include "Adafruit_MAX31855.h"
+#include <Adafruit_MAX31865.h>
+
 
 #include <PID_v1.h>
 
@@ -16,15 +18,16 @@ PID myPID(&Input, &Output, &MSP,75,50,0, DIRECT);
 int WindowSize = 1000;
 unsigned long windowStartTime;
 
-// Pins used by the adafruit thing:
-// Try using 1 - (CS), 12 (DO), 13 (SCK)
+
+// thermocouple: CS 2, SPI normal pins
+// pt100: CS A1, SPI normal pins 
 
 // Pins used by the brewpi thing
 // A4 - onewire
 // 3 - buzzer
-// 4 - door
-// 5 - heating
-// 6 - cooling
+// 4 - door 
+// 5 - heating (used for relay/heater PWM)
+// 6 - cooling (used for fan/MOSFET PWM)
 
 // 7,8,9 - encoder
 
@@ -34,6 +37,8 @@ unsigned long windowStartTime;
 Buzzer buzzer;
 long oldPosition  = -999;
 double temperature=0.0;
+double beantemp=0.0;
+
 #define STARTSETPOINT 180
 int setpoint = STARTSETPOINT;
 
@@ -44,8 +49,17 @@ int setpoint = STARTSETPOINT;
 #define MAXCS   2 // 10 is used by the brewpi display board
 Adafruit_MAX31855 thermocouple(MAXCS);
 Encoder myEnc(8, 9);
+#define PT100CS A1
+// The value of the Rref resistor. Use 430.0 for PT100 and 4300.0 for PT1000
+#define RREF      430.0
+// The 'nominal' 0-degrees-C resistance of the sensor
+// 100.0 for PT100, 1000.0 for PT1000
+#define RNOMINAL  100.0
+
+Adafruit_MAX31865 thermo = Adafruit_MAX31865(PT100CS);
 
 int relay = 5;  
+
 unsigned long oldtime=0;
 
 SpiLcd lcd;
@@ -73,12 +87,15 @@ char *ftoa(char *a, double f, int precision)
 void writetemps() {
   static double otemp=-1.0;
   static int oset=-1.0;
-
+  static int obean=-1.0;
+  
   if (otemp != temperature) {
     lcd.setCursor(6,2);
     lcd.write(itoa(((int)(temperature)),buf, 10));
     lcd.write((char)223);
     lcd.write(" ");
+      Serial.print(" Air Temperature = "); Serial.println(temperature);
+      Serial.println(itoa(((int)(temperature)),buf, 10));
     otemp = temperature;
   }
 
@@ -89,22 +106,33 @@ void writetemps() {
     lcd.write(" ");
     oset=setpoint;
   }
+
+  if (obean != beantemp) {
+    lcd.setCursor(6,1);
+    lcd.write(itoa(((int)(beantemp)),buf, 10));
+    lcd.write((char)223);
+    lcd.write(" ");
+    obean = beantemp;
+            Serial.print("Bean Temperature = "); Serial.println(beantemp);
+
+  }
    
 }
 
-void writepow() {
-  static double oout=-1;
-
-  if (oout != Output) {
-  oout = Output;
-    lcd.setCursor(6,1);
-    lcd.write(itoa((int)(100.0*Output/WindowSize), buf, 10));
-    lcd.write((char)'%');
-    lcd.write(" ");
-  
-  }
-  
-}
+// not used with coffee sensor
+//void writepow() {
+//  static double oout=-1;
+//  
+//  if (oout != Output) {
+//  oout = Output;
+//    lcd.setCursor(6,1);
+//    lcd.write(itoa((int)(100.0*Output/WindowSize), buf, 10));
+//    lcd.write((char)'%');
+//    lcd.write(" ");
+//  
+//  }
+//  
+//}
 
 
 void display_setup() {
@@ -114,29 +142,30 @@ void display_setup() {
  lcd.home();
    lcd.clear();
   delay(100); // without this, the first character is not printed
- lcd.write("COFFEE-I-NATOR!");
+ lcd.write("COFFEE-I-NATOR 2.1!");
  lcd.setCursor(0,2);
  lcd.write("Air : ");
  lcd.setCursor(0,3);
  lcd.write("Set : ");
  lcd.setCursor(0,1);
- lcd.write("Pow : ");
+ lcd.write("Bean: ");
 
  writetemps();
- writepow();
+ //writepow();
 }
 
 void update_display() {
  writetemps();
- writepow();
+// writepow();
 }
 
 void setup() {
   Serial.begin( 9600 ); // baud-rate at 19200
 
   pinMode(relay, OUTPUT);
+  thermo.begin(MAX31865_3WIRE);  // set to 2WIRE or 4WIRE as necessary
   display_setup();
-
+  
   // buzzer
   buzzer.init();
   buzzer.beep(1,100);
@@ -180,13 +209,15 @@ void loop() {
    if(millis()-oldtime > 100) {
       oldtime=millis();
       temperature = (thermocouple.readCelsius());
-      
+      // for some reason, the display stops working after reading the bean temperature
+      beantemp = 1.0*((int)(thermo.temperature(RNOMINAL, RREF)));
       Input = temperature;
       myPID.Compute();
-            Serial.println(MSP);
-      Serial.println(Input);
+//            Serial.println(MSP);
+//      Serial.println(Input);
 
-      Serial.println(Output);
+//      Serial.println(Output);
+
    }
 
   if(millis() - windowStartTime>WindowSize)
@@ -195,7 +226,6 @@ void loop() {
   }
   if(Output < millis() - windowStartTime) digitalWrite(relay,HIGH);
   else digitalWrite(relay,LOW);
-  
   
    read_encoder();
    update_display();
