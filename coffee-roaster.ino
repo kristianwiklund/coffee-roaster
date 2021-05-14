@@ -29,6 +29,10 @@ unsigned long windowStartTime;
 // 5 - heating (used for relay/heater PWM)
 // 6 - cooling (used for fan/MOSFET PWM)
 
+#define mosfet 6
+#define maxfan 255
+#define minfan 0    // must be increased when connected, to be at least something that keeps the bean bed fluid and moving around
+
 // 7,8,9 - encoder
 
 // 10 - CS for display
@@ -39,7 +43,7 @@ long oldPosition  = -999;
 double temperature=0.0;
 double beantemp=0.0;
 
-#define STARTSETPOINT 180
+#define STARTSETPOINT 0            // keep the heating off when testing
 int setpoint = STARTSETPOINT;
 
 
@@ -163,6 +167,9 @@ void setup() {
   Serial.begin( 9600 ); // baud-rate at 19200
 
   pinMode(relay, OUTPUT);
+  pinMode(mosfet, OUTPUT);
+  analogWrite(mosfet, 255); // start the fan at max power
+   
   thermo.begin(MAX31865_3WIRE);  // set to 2WIRE or 4WIRE as necessary
   display_setup();
   

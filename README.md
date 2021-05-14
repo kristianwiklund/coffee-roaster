@@ -1,16 +1,25 @@
 # Arduino Controlled Coffee Roaster
 
-Built around a brewpi arduino shield I had around. Needs the brewpi libraries.
-Somewhere in the code tree you will find the code from lukeinator42's build, but the software is more or less 100% rewritten. 
-
-Plans:
-1 - add a mosfet to the fan to be able to pwm it down if very cold outside
-2 - add thermometer to the beans as well
-
 Dependencies
 
 * adafruit thermocouple 31855
 * adafruit pt100 31865
-* brewpilibs
+* brewpilibs 
 * fastio
 * pid
+
+If you have arduino-cli installed you can install all dependencies by a simple "make arduino-deps"
+
+# Physical design
+
+The device is constructed from a popcorn maker. The heating element is connected to mains through a solid state relay, which is controlled by an arduino.
+The arduino runs a simple PID, and reads temperature from the hot air below the roasting (popping) chamber using a thermocouple.
+The fan is powered from a 19V HP laptop charger partially because I managed to blow up the series resistor, partially because I wanted to get rid of the 1:1 connection between heating and fan.
+
+Since I happened to have a spare brewpi arduino shield lying around, the LCD and the decoder is connected to the arduino through the brewpi, but any display / encoder should work.
+
+The SSR is connected to arduino pin 5.
+
+# Other notes
+
+Mosfet board schematics: https://robojax.com/learn/arduino/?vid=robojax-IRF520-MOSFET
