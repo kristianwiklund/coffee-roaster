@@ -120,19 +120,19 @@ void writetemps() {
 }
 
 // not used with coffee sensor
-//void writepow() {
-//  static double oout=-1;
-//  
-//  if (oout != Output) {
-//  oout = Output;
-//    lcd.setCursor(6,1);
-//    lcd.write(itoa((int)(100.0*Output/WindowSize), buf, 10));
-//    lcd.write((char)'%');
-//    lcd.write(" ");
-//  
-//  }
-//  
-//}
+void writepow() {
+  static double oout=-1;
+  
+  if (oout != Output) {
+  oout = Output;
+    lcd.setCursor(6,0);
+    lcd.write(itoa((int)(100.0*Output/WindowSize), buf, 10));
+    lcd.write((char)'%');
+    lcd.write(" ");
+  
+  }
+  
+}
 
 
 void display_setup() {
@@ -142,7 +142,7 @@ void display_setup() {
  lcd.home();
    lcd.clear();
   delay(100); // without this, the first character is not printed
- lcd.write("COFFEE-I-NATOR 2.2!");
+ lcd.write("Pow :" );
  lcd.setCursor(0,2);
  lcd.write("Air : ");
  lcd.setCursor(0,3);
@@ -151,12 +151,12 @@ void display_setup() {
  lcd.write("Bean: ");
 
  writetemps();
- //writepow();
+ writepow();
 }
 
 void update_display() {
  writetemps();
-// writepow();
+ writepow();
 }
 
 void setup() {
