@@ -142,7 +142,7 @@ void display_setup() {
  lcd.home();
    lcd.clear();
   delay(100); // without this, the first character is not printed
- lcd.write("COFFEE-I-NATOR 2.1!");
+ lcd.write("COFFEE-I-NATOR 2.2!");
  lcd.setCursor(0,2);
  lcd.write("Air : ");
  lcd.setCursor(0,3);
@@ -207,6 +207,7 @@ void read_encoder() {
 void loop() {
    //write current thermocouple value
    if(millis()-oldtime > 100) {
+      Serial.print(".");
       oldtime=millis();
       temperature = (thermocouple.readCelsius());
       // for some reason, the display stops working after reading the bean temperature

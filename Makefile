@@ -2,6 +2,9 @@
 coffee-roaster.ino.hex: coffee-roaster.ino
 	~/bin/arduino-cli compile -v --output-dir . -b arduino:avr:uno coffee-roaster.ino 
 
+clean:
+	rm *.hex
+
 upload: coffee-roaster.ino.hex
 	$(eval PORT=$(shell ./findport.sh))
 	echo $(PORT)
@@ -10,7 +13,7 @@ upload: coffee-roaster.ino.hex
 
 connect: upload
 	$(eval PORT=$(shell ./findport.sh))
-	screen $(PORT) 115200
+	screen $(PORT) 9600
 
 reset:
 	$(eval PORT=$(shell ./findport.sh))
