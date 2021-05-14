@@ -1,5 +1,5 @@
 
-coffee-roaster.ino.hex: coffee-roaster.ino selftest.ino serial.ino
+coffee-roaster.ino.hex: coffee-roaster.ino
 	~/bin/arduino-cli compile -v --output-dir . -b arduino:avr:uno coffee-roaster.ino 
 
 upload: coffee-roaster.ino.hex
