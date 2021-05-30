@@ -1,6 +1,6 @@
 
 coffee-roaster.ino.hex: coffee-roaster.ino
-	~/bin/arduino-cli compile -v --output-dir . -b arduino:avr:uno coffee-roaster.ino 
+	arduino-cli compile -v --output-dir . -b arduino:avr:uno coffee-roaster.ino 
 
 clean:
 	rm *.hex
@@ -8,7 +8,7 @@ clean:
 upload: coffee-roaster.ino.hex
 	$(eval PORT=$(shell ./findport.sh))
 	echo $(PORT)
-	~/bin/arduino-cli upload --input-dir . -p $(PORT) -v -b arduino:avr:uno coffee-roaster.ino
+	arduino-cli upload --input-dir . -p $(PORT) -v -b arduino:avr:uno coffee-roaster.ino
 	touch upload
 
 connect: upload
