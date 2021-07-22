@@ -33,7 +33,7 @@ unsigned long windowStartTime;
 #define maxfan 255
 #define minfan 0    // must be increased when connected, to be at least something that keeps the bean bed fluid and moving around
 
-// 7,8,9 - encoder
+// 7,8,9 - encoder - 7 is the button
 
 // 10 - CS for display
 
@@ -52,7 +52,7 @@ int setpoint = STARTSETPOINT;
 
 #define MAXCS   2 // 10 is used by the brewpi display board
 Adafruit_MAX31855 thermocouple(MAXCS);
-Encoder myEnc(8, 9);
+Encoder myEnc(rotaryAPin , rotaryBPin );
 #define PT100CS A1
 // The value of the Rref resistor. Use 430.0 for PT100 and 4300.0 for PT1000
 #define RREF      430.0
@@ -98,8 +98,8 @@ void writetemps() {
     lcd.write(itoa(((int)(temperature)),buf, 10));
     lcd.write((char)223);
     lcd.write(" ");
-      Serial.print(" Air Temperature = "); Serial.println(temperature);
-      Serial.println(itoa(((int)(temperature)),buf, 10));
+//      Serial.print(" Air Temperature = "); Serial.println(temperature);
+//      Serial.println(itoa(((int)(temperature)),buf, 10));
     otemp = temperature;
   }
 
@@ -117,7 +117,7 @@ void writetemps() {
     lcd.write((char)223);
     lcd.write(" ");
     obean = beantemp;
-            Serial.print("Bean Temperature = "); Serial.println(beantemp);
+ //           Serial.print("Bean Temperature = "); Serial.println(beantemp);
 
   }
    
@@ -165,7 +165,7 @@ void update_display() {
 
 void setup() {
   Serial.begin( 9600 ); // baud-rate at 19200
-
+  pinMode(rotarySwitchPin, INPUT);
   pinMode(relay, OUTPUT);
   pinMode(mosfet, OUTPUT);
   analogWrite(mosfet, 255); // start the fan at max power
@@ -214,7 +214,7 @@ void read_encoder() {
 void loop() {
    //write current thermocouple value
    if(millis()-oldtime > 100) {
-      Serial.print(".");
+    //  Serial.print(".");
       oldtime=millis();
       temperature = (thermocouple.readCelsius());
       // for some reason, the display stops working after reading the bean temperature
@@ -240,6 +240,10 @@ void loop() {
    read_encoder();
    update_display();
 
+   if(!digitalRead(rotarySwitchPin)) {
+	setpoint=0;
+	myEnc.write(0);
+	}
 }
 
 
