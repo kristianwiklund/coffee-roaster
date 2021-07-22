@@ -14,7 +14,7 @@
 
 double MSP, Input, Output;
 
-PID myPID(&Input, &Output, &MSP,75,50,0, DIRECT);
+PID myPID(&Input, &Output, &MSP,20.0,0.1,0.0, DIRECT);
 int WindowSize = 1000;
 unsigned long windowStartTime;
 
@@ -219,7 +219,9 @@ void loop() {
       temperature = (thermocouple.readCelsius());
       // for some reason, the display stops working after reading the bean temperature
       beantemp = 1.0*((int)(thermo.temperature(RNOMINAL, RREF)));
-      Input = temperature;
+//      Input = temperature;
+      Input = beantemp;
+      
       myPID.Compute();
 //            Serial.println(MSP);
 //      Serial.println(Input);
